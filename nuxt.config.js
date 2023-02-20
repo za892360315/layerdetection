@@ -93,7 +93,8 @@ export default {
     [
       '/serverFile',
       {
-        target: 'http://192.9.200.25:52536',
+        target: 'http://192.9.200.86:7001/',
+        // target: 'http://192.9.200.25:52536',
         changeOrigin: true,
         pathRewrite: {
           '^/serverFile': '',
@@ -101,12 +102,12 @@ export default {
       },
     ],
     [
-      '/addressRes',
+      '/detect',
       {
-        target: 'http://124.72.48.24:5000',
+        target: 'http://192.9.200.25:9987',
         changeOrigin: true,
         pathRewrite: {
-          '^/addressRes': '',
+          "^/detect": "",
         },
       },
     ],

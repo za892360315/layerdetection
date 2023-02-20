@@ -75,7 +75,7 @@
           <el-col :span="7" class="row-box-left">外部导入 : </el-col>
           <el-col :span="17" class="row-box-right">
             <el-row :gutter="10" style="margin-bottom: 5px" type="flex">
-              <el-col :span="8">
+              <el-col :span="12">
                 <el-upload
                   ref="upload"
                   :show-file-list="false"
@@ -93,7 +93,7 @@
                   >
                 </el-upload>
               </el-col>
-              <el-col :span="8">
+              <el-col :span="12">
                 <el-upload
                   ref="upload"
                   :show-file-list="false"
@@ -114,7 +114,7 @@
                   >
                 </el-upload>
               </el-col>
-              <el-col :span="8">
+              <!-- <el-col :span="8">
                 <el-button
                   :class="activeList === 'layer' ? 'btn-select' : ''"
                   class="form-btn btn-start"
@@ -123,7 +123,7 @@
                   @click="getLayerTree"
                   >地块拾取</el-button
                 >
-              </el-col>
+              </el-col> -->
             </el-row>
           </el-col>
         </el-row>
@@ -155,7 +155,7 @@
             </el-select>
           </el-col>
         </el-row>
-        <el-row v-show="activeList === 'layer'" class="row-box row-box-bottom">
+        <!-- <el-row v-show="activeList === 'layer'" class="row-box row-box-bottom">
           <el-col :span="7" class="row-box-left">拾取图层 : </el-col>
           <el-col :span="17" class="row-box-right">
             <el-select
@@ -176,7 +176,7 @@
               <el-row style="height: 17px"></el-row>
             </el-select>
           </el-col>
-        </el-row>
+        </el-row> -->
       </el-row>
     </el-row>
     <el-row class="panel-item">
@@ -292,7 +292,7 @@
 // import BorderPickUpComponent from './BorderPickUp.vue'
 // import basePanel from '@/components/onlineMap/CBasePanel'
 import basePanel from '@/components/templates/templatePanels.vue'
-// import { getCatalogLayerItems, getControlLineCatalog } from '~/modules/service'
+import { getStatdetectData } from '~/services/api/common'
 import {
   queryFeaturesLand,
   queryFeaturesOccupy,
@@ -415,23 +415,19 @@ export default {
       }
     },
     // 获取拾取地图目录
-    getLayerTree() {
-      this.activeList = 'layer'
-      if (this.layerData.length > 0) {
-        return
-      }
-      const categoryId = window.oneDetection.CategoryId
-      console.log(
-        '%c [ categoryId ]-429',
-        'font-size:13px; background:pink; color:#bf2c9f;',
-        categoryId
-      )
-      //   getCatalogLayerItems(categoryId).then((res) => {
-      //     if (res) {
-      //       this.layerData = res.items
-      //     }
-      //   })
-    },
+    // getLayerTree() {
+    //   this.activeList = 'layer'
+    //   if (this.layerData.length > 0) {
+    //     return
+    //   }
+    //   const categoryId = window.oneDetection.CategoryId
+     
+    //     getCatalogLayerItems(categoryId).then((res) => {
+    //       if (res) {
+    //         this.layerData = res.items
+    //       }
+    //     })
+    // },
     screenshot() {
       this.$notify({
         title: '提示',
@@ -445,16 +441,15 @@ export default {
       this.showResult = false
     },
     getControlLineCatalog() {
-      //   if (this.schemeCatalogs.lenth > 0) return
-      //   const nodeId = window.oneDetection.oneDetectionCatalogName
-      //   getControlLineCatalog(nodeId, (res) => {
-      //     if (res.children) {
-      //       res.displayName = '全选'
-      //       this.schemeCatalogs = [res]
-      //     } else {
-      //       console.log('获取一键检测方案失败')
-      //     }
-      //   })
+        if (this.schemeCatalogs.lenth > 0) return
+        getStatdetectData((res) => {
+          if (res.children) {
+            res.displayName = '全选'
+            this.schemeCatalogs = [res]
+          } else {
+            console.log('获取一键检测方案失败')
+          }
+        })
     },
     selectCadFile(file) {
       this.activeList = 'importCad'

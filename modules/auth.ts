@@ -1,4 +1,3 @@
-import { getFormTree } from '@/services/api/common'
 const TokenKey = 'Abp.AuthToken'
 export function getToken() {
   const win: any = window
@@ -66,8 +65,3 @@ export function getMenus() {
   return userInfo
 }
 
-// 存储权限树
-export async function setFormTree() {
-  let res = await getFormTree()
-  window.sessionStorage.setItem('FormTree', res)
-}

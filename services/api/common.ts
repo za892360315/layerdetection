@@ -1,25 +1,42 @@
-import { devAPIRequest } from '@/services/base'
+//智能检测
+import { detectRequest, serverFileRequest } from "@/services/base";
 
-// 获取全部图层列表
-export async function getLayersListByTableName(name: any, params: any) {
-  const result: any = await devAPIRequest.post(
-    '/xmgis/api/dynamicform/v2/collection/' + name,
-    params
-  )
-  return result
+export const api: any = {
+  detecttUrl:
+    "/xmgis/api/platform/detect-control-plan-categories/tree-by-id/" +
+    (window as any).oneDetection.detectName,
+  detecttUrlPL:
+    "/xmgis/api/platform/detect-control-plan-categories/tree-by-id/" +
+    (window as any).oneDetection.detecttNamePL,
+  serverShapeFileUrl: "/api/services/app/Gis/ParseCADFileWithoutAE",
+  serverZipFileUrl: "/api/services/app/Gis/ParseShapeFile",
+  serverMdbFileUrl: "/api/services/app/Gis/ParseMDBFile",
+};
+// 获取一键检测指标数据
+export async function getStatdetectData() {
+  const result: any = await detectRequest.get(api.detecttUrl);
+  return result;
 }
-
-// 获取指定模板类型
-export async function getVformData(name: any) {
-  const result: any = await devAPIRequest.get(
-    '/xmgis/api/dynamicform/v2/form-template/' + name
-  )
-  return result
+// 获取批量检测指标数据
+export async function getStatdetectPlData() {
+  const result: any = await detectRequest.get(api.detecttUrlPL);
+  return result;
 }
-// 获取指定模板类型
-export async function getFormTree() {
-  const result: any = await devAPIRequest.get(
-    '/xmgis/api/dynamicform/form-categories/grant-tree-by-id/6eaf5e74-3a31-2513-14a9-3a091e32dd17?withForm=true' 
-  )
-  return result
+// 文件解析 CAD
+export async function parseCadFile(data: any) {
+  const result: any = await serverFileRequest.post(
+    api.serverShapeFileUrl,
+    data
+  );
+  return result;
+}
+// 文件解析 shape
+export async function parseShapeFile(data: any) {
+  const result: any = await serverFileRequest.post(api.serverZipFileUrl, data);
+  return result;
+}
+// 文件解析 MDB
+export async function parseMdbFile(data: any) {
+  const result: any = await serverFileRequest.post(api.serverMdbFileUrl, data);
+  return result;
 }

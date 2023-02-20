@@ -1,6 +1,5 @@
 import { Module } from 'vuex'
 // import { mapMove, mapClick,clearMoveMap } from '@/modules/appendMourse'
-import { clearTempLayer } from '@/modules/esriCommand'
 const app: Module<any, any> = {
   namespaced: true,
   state() {
@@ -40,7 +39,6 @@ const app: Module<any, any> = {
     setMenuTitle: (state, value) => {
       if (value === state.value) return
       //   clearVForm()
-      clearTempLayer()
       state.showAllLayers = false
       state.menuTitle = value
       state.operateType = ''

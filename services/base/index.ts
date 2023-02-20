@@ -43,11 +43,10 @@ const serverFileRequest = new Request({
   timeout: 20000,
   Intercepters,
 })
-// 地址
-const addressRequest = new Request({
-  baseURL: '/addressRes',
-  timeout: 600000,
-  Intercepters,
-})
-
-export { userAPIRequest, devAPIRequest, serverFileRequest, addressRequest }
+//检测
+const detectRequest = new Request({
+  baseURL: "/detect",
+  timeout: 20000,
+  Intercepters: Intercepters,
+});
+export { userAPIRequest, devAPIRequest, serverFileRequest, detectRequest }

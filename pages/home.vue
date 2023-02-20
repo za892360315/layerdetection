@@ -104,5 +104,6 @@ export default class extends Vue {
   right: 37px;
   top: 20px;
   background-color: #fff;
+  box-shadow: 0px 0px 7px 1px #ccc;
 }
 </style>
