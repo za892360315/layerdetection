@@ -231,6 +231,8 @@ export function queryFeaturesOccupy(
   inputExtent: any,
   filterFeatures: any
 ) {
+
+  // if (!queryscheme.layer) return
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve: any) => {
     try {
@@ -242,10 +244,10 @@ export function queryFeaturesOccupy(
       if (queryscheme.subLayerIndex !== null) {
         query.url =
           queryscheme.layer.serviceUrl + '/' + queryscheme.subLayerIndex
+
       } else {
         query.url = queryscheme.layer.serviceUrl
       }
-
       query.geometry = inputExtent
       query.returnGeometry = true
       query.outFields = ['*']
@@ -734,7 +736,6 @@ export function queryFeaturesByStatic(
       } else {
         query.url = queryscheme.layer.serviceUrl
       }
-
       query.geometry = inputExtent
       query.returnGeometry = true
       query.outFields = ['*']
@@ -745,6 +746,7 @@ export function queryFeaturesByStatic(
       const queryTask = new QueryTask({
         url: query.url,
       })
+
       // 查询图层与绘制区域内与相交的多边形
       queryTask.execute(query).then(function (queryResults: any) {
         const inFeaMap: any = []

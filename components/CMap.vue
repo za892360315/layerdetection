@@ -1,10 +1,6 @@
 <template>
   <div class>
     <div id="map" class="mapViewDiv"></div>
-    <!-- <div class="zoom-control">
-      <div class="add" @click="handlerZoom(true)"></div>
-      <div class="sub" @click="handlerZoom(false)"></div>
-    </div> -->
   </div>
 </template>
 
@@ -12,6 +8,7 @@
 import { Vue, Component } from 'vue-property-decorator'
 import { init, create2DView } from '@/modules/arcgisAPI'
 import config from '@/modules/appConfig'
+import { get2dMapCatalog, getMaps } from '~/services/api/map'
 
 @Component({
   name: '',
@@ -30,18 +27,33 @@ export default class extends Vue {
   // 创建2d
   createView() {
     this.$store.commit('oneMap/setGlobalLoading', true)
-    create2DView('map').then(() => {
-      this.$store.commit('oneMap/setGlobalLoading', false)
-    })
-  }
-
-  // 控制地图大小
-  handlerZoom(flag: boolean) {
-    if (!config.activeView) return
-    config.activeView.zoom = config.activeView.goTo({
-      center: config.activeView.center,
-      scale: flag ? config.activeView.scale / 2 : config.activeView.scale * 2,
-    })
+    getMaps().then(() => {
+    const base2DMapCategoryId = config.mapInitParam.base2DMapCategoryId;
+    get2dMapCatalog(base2DMapCategoryId)
+      .then(async (mapConfigData: any) => {
+        const tempData: any[] = [];
+        mapConfigData.children.forEach((item: any) => {
+          item.base2DMaps.forEach((ele: any) => {
+            ele.parentName = item.displayName;
+            ele.layerType = ele.mapLayer.layerConfig.layerType;
+            ele.mapLayer.id = ele.mapLayer.id + "-basemap";
+            tempData.push(ele);
+          });
+          config.basemap2DCatalogs.push(item);
+        });
+        config.basemap2DLayers = tempData;
+         create2DView("map");
+        this.$store.commit('oneMap/setGlobalLoading', false)
+      })
+      .catch((err: any) => {
+        console.log("获取地图参数失败");
+        console.log(err);
+        // loading.value = false;
+      });
+  });
+    // create2DView('map').then(() => {
+    //   this.$store.commit('oneMap/setGlobalLoading', false)
+    // })
   }
 }
 </script>

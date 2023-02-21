@@ -1,4 +1,6 @@
 import { devAPIRequest } from '@/services/base'
+import config from '~/modules/appConfig';
+
 const win: any = window
 
 export const api: any = {
@@ -7,8 +9,9 @@ export const api: any = {
 // 获取地图参数
 export async function getMaps() {
   const result: any = await devAPIRequest.get(
-    api.RouteXmgisPlatformSettingPrefix + '/maps/by-name/' + win.mapConfig.name
+    api.RouteXmgisPlatformSettingPrefix + '/maps/by-name/' + win.mapName
   )
+  config.mapInitParam = result;
   return result
 }
 // 获取2d地图参数

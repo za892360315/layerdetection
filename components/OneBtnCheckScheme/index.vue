@@ -12,16 +12,16 @@
     <!-- <el-tab-pane v-if="yjjcVisible" label="一键检测" name="yjjc">
       <OneDetectionComponet />
     </el-tab-pane> -->
-    <!-- <el-tab-pane v-if="pljcVisibleL" label="批量检测" name="pljc"> -->
-    <!-- <BatchInspectionComponet /> -->
-    <!-- </el-tab-pane> -->
+    <el-tab-pane label="批量检测" name="pljc">
+      <BatchInspectionComponet />
+    </el-tab-pane>
   </el-tabs>
 </template>
 
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator'
 import OneDetectionComponet from './COneDetection.vue'
-// import BatchInspectionComponet from './BatchInspection.vue'
+import BatchInspectionComponet from './BatchInspection.vue'
 // import thematicStaticComponent from '@/components/onlineMap/staticAnalysis/CThematicStatic.vue'
 // import commonStaticComponent from '@/components/onlineMap/staticAnalysis/CCommonStatic.vue'
 // import { getUserInfo } from '@/modules/appCommon'
@@ -31,7 +31,7 @@ import OneDetectionComponet from './COneDetection.vue'
     // thematicStaticComponent,
     // commonStaticComponent,
     OneDetectionComponet,
-    // BatchInspectionComponet
+    BatchInspectionComponet
   },
 })
 export default class extends Vue {

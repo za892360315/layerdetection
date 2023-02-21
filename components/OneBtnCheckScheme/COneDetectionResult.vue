@@ -808,6 +808,7 @@ export default class extends Vue {
   @Watch('resultsContent', { deep: true, immediate: true })
   changeResultsContent(newVal: any) {
     this.analysisData = JSON.parse(newVal)
+    // console.log('%c [ this.analysisData ]-811', 'font-size:13px; background:pink; color:#bf2c9f;', this.analysisData)
     this.dataClassify()
     this.resetDKFW()
     this.layerArray.forEach((element: any) => {
@@ -888,7 +889,7 @@ export default class extends Vue {
       const index = url.lastIndexOf('/')
       const id = parseInt(url.substring(index + 1, url.length))
 
-      layer = MapImageLayer({
+      layer =new MapImageLayer({
         title: 'temporary',
         url: url.substring(0, index),
         sublayers: [

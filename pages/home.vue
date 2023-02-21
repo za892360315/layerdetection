@@ -99,7 +99,7 @@ export default class extends Vue {
 }
 .check-scheme {
   height: 96vh;
-  width: 439px;
+  width: 406px;
   position: absolute;
   right: 37px;
   top: 20px;

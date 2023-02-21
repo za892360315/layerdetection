@@ -103,7 +103,7 @@
                   :on-remove="handleCadRemove"
                   class="upload-demo"
                   accept=".dwg"
-                  action="/GisApi/services/app/Gis/ParseCADFile"
+                  action="http://192.9.200.86:7001/api/services/app/Gis/ParseCADFileWithoutAE"
                 >
                   <el-button
                     :class="activeList === 'importCad' ? 'btn-select' : ''"
@@ -193,8 +193,8 @@
               <el-tree
                 ref="tree"
                 :data="schemeCatalogs"
-                :render-after-expand="false"
                 :props="defaultProps"
+                :render-after-expand="false"
                 :default-expand-all="true"
                 node-key="id"
                 show-checkbox
@@ -269,7 +269,7 @@
       @close="showResult = false"
     >
       <div slot="header" class="panel-header">一键检测结果</div>
-      <!-- <OneDetectionResult
+      <OneDetectionResult
         slot="content"
         ref="DetectionResult"
         :form="form"
@@ -278,7 +278,7 @@
         :geometry-xzq="geometryXZQ"
         :results-content="resultsContent"
         @setGeometryCenter="setGeometryCenter"
-      ></OneDetectionResult> -->
+      ></OneDetectionResult>
     </base-panel>
     <!-- <BorderPickUpComponent
       v-if="borderPickUp"
@@ -288,7 +288,7 @@
   </div>
 </template>
 <script>
-// import OneDetectionResult from './COneDetectionResult.vue'
+import OneDetectionResult from './COneDetectionResult.vue'
 // import BorderPickUpComponent from './BorderPickUp.vue'
 // import basePanel from '@/components/onlineMap/CBasePanel'
 import basePanel from '@/components/templates/templatePanels.vue'
@@ -306,13 +306,13 @@ import { calculateAreas } from '~/modules/esriControlLine'
 import config from '~/modules/appConfig'
 import { getMainView, getModules } from '~/modules/arcgisAPI'
 
-// import { changeExtent, getMainMap } from '~/modules/esriCommand'
+import { changeExtent } from '~/modules/esriCommand'
 // import { createLayer } from '~/modules/esriLayer'
 export default {
   // 一键检测模块
   name: 'COneDetection',
   components: {
-    // OneDetectionResult,
+    OneDetectionResult,
     // BorderPickUpComponent,
     basePanel,
   },
@@ -383,37 +383,41 @@ export default {
         this.layerIndex = null
       }
     },
-    selectLayerGeo(features) {
-      try {
-        this.pickUpFeatures = features
-        this.form.geotype = '3'
-        const polygons = []
-        features.forEach((item) => {
-          if (
-            item.feature &&
-            item.feature.geometry &&
-            item.feature.geometry.rings
-          ) {
-            polygons.push(item.feature.geometry)
-          } else if (item.geometry && item.geometry.rings) {
-            polygons.push(item.geometry)
-          }
-        })
-        const polygon = config.esriConstructors.geometryEngine.union(polygons)
-        const graphic = new config.esriConstructors.Graphic({
-          geometry: polygon,
-          symbol: this.fillSymbol,
-        })
-        this.polygonGraphic = graphic
-        setTimeout(() => {
-          const view = getMainView()
-          view.graphics.add(graphic)
-          //   view.extent = changeExtent(polygon.extent.clone())
-        }, 1000)
-      } catch (error) {
-        console.log(error)
-      }
-    },
+    // async selectLayerGeo(features) {
+    //   try {
+    //     this.pickUpFeatures = features
+    //     this.form.geotype = '3'
+    //     const polygons = []
+    //     features.forEach((item) => {
+    //       if (
+    //         item.feature &&
+    //         item.feature.geometry &&
+    //         item.feature.geometry.rings
+    //       ) {
+    //         polygons.push(item.feature.geometry)
+    //       } else if (item.geometry && item.geometry.rings) {
+    //         polygons.push(item.geometry)
+    //       }
+    //     })
+    //     const [geometryEngine, Graphic] = await getModules([
+    //       'esri/geometry/geometryEngine',
+    //       'esri/Graphic',
+    //     ])
+    //     const polygon = geometryEngine.union(polygons)
+    //     const graphic = new Graphic({
+    //       geometry: polygon,
+    //       symbol: this.fillSymbol,
+    //     })
+    //     this.polygonGraphic = graphic
+    //     setTimeout(() => {
+    //       const view = getMainView()
+    //       view.graphics.add(graphic)
+    //       //   view.extent = changeExtent(polygon.extent.clone())
+    //     }, 1000)
+    //   } catch (error) {
+    //     console.log(error)
+    //   }
+    // },
     // 获取拾取地图目录
     // getLayerTree() {
     //   this.activeList = 'layer'
@@ -421,7 +425,7 @@ export default {
     //     return
     //   }
     //   const categoryId = window.oneDetection.CategoryId
-     
+
     //     getCatalogLayerItems(categoryId).then((res) => {
     //       if (res) {
     //         this.layerData = res.items
@@ -441,14 +445,16 @@ export default {
       this.showResult = false
     },
     getControlLineCatalog() {
-        if (this.schemeCatalogs.lenth > 0) return
-        getStatdetectData((res) => {
+      if (this.schemeCatalogs.lenth > 0) return
+      getStatdetectData()
+        .then((res) => {
           if (res.children) {
             res.displayName = '全选'
             this.schemeCatalogs = [res]
-          } else {
-            console.log('获取一键检测方案失败')
           }
+        })
+        .catch((err) => {
+          console.log('获取一键检测方案失败', err)
         })
     },
     selectCadFile(file) {
@@ -472,7 +478,7 @@ export default {
     },
     handleCadSuccess(response) {
       if (response.success) {
-        const result = JSON.parse(response.result)
+        const result = response.result
         this.inputFileFeaure = result.Polygon
         this.$message('文件导入成功，请在地块列表中选择检测地块')
       } else {
@@ -555,7 +561,7 @@ export default {
     },
     async changeSelectGeo() {
       this.form.geotype = '1'
-      const view = config.getMainView()
+      const view = getMainView()
       const [Polygon, Graphic] = await getModules([
         'esri/geometry/Polygon',
         'esri/Graphic',
@@ -579,9 +585,10 @@ export default {
           symbol: this.fillSymbol,
         })
         view.graphics.add(graphic)
-        // view.extent = changeExtent(polygon.extent.clone())
+        view.extent = changeExtent(polygon.extent.clone())
       })
     },
+
     changeSelectLayer() {
       return false
       //   try {
@@ -604,7 +611,7 @@ export default {
     },
     async doAnalysis() {
       this.queryList = []
-      const view = config.getMainView()
+      const view = getMainView()
       let rings = []
       let polygon = null
       const [Polygon, Graphic] = await getModules([
@@ -657,7 +664,7 @@ export default {
       this.geometryXZQ = ''
       this.queryIndex = 0
       this.queryYDXZ(this.polygonGraphic.geometry) // 用地性质
-      this.queryXZQ(this.polygonGraphic.geometry) // 所属行政区
+      // this.queryXZQ(this.polygonGraphic.geometry) // 所属行政区
       this.showResult = true
       this.setGeometryCenter()
       this.needQueryList()
@@ -671,7 +678,7 @@ export default {
         geometry: [],
       }
       this.inputFileFeaure = []
-      const view = config.getMainView()
+      const view = getMainView()
       view.graphics.removeAll()
       // view.map.layers.forEach((item) => {
       //   if (item.id === 'screenshotID') {
@@ -683,7 +690,7 @@ export default {
       // this.clear()
       this.$refs.tree.setCheckedKeys([])
     },
-    showTemporaryLayer(layerData) {
+    async showTemporaryLayer(layerData) {
       if (this.layerMap.has(layerData.layer.id + '-temporary')) {
         const layer = this.layerMap.get(layerData.layer.id + '-temporary')
         layer.visible = true
@@ -704,7 +711,8 @@ export default {
           url = layerData.layer.serviceUrl
           id = layerData.subLayerIndex
         }
-        const layer = new config.esriConstructors.MapImageLayer({
+        const [MapImageLayer] = await getModules(['esri/layers/MapImageLayer'])
+        const layer = new MapImageLayer({
           title: 'temporary',
           id: layerData.layer.id + '-temporary',
           url,
@@ -726,9 +734,10 @@ export default {
         layer.visible = false
       })
     },
-    queryYDXZ(geo) {
+    async queryYDXZ(geo) {
       const view = getMainView()
-      const featureLayer = new config.esriConstructors.FeatureLayer({
+      const [FeatureLayer] = await getModules(['esri/layers/FeatureLayer'])
+      const featureLayer = new FeatureLayer({
         url: window.oneDetection.yzltUrl,
       })
       const query = featureLayer.createQuery()
@@ -736,11 +745,11 @@ export default {
       query.returnGeometry = false
       query.where = '1=1'
       query.outSpatialReference = view.spatialReference
-      query.groupByFieldsForStatistics = window.oneDetection.ydxzField
+      query.groupByFieldsForStatistics = '规划用地性质名称'
       query.outStatistics = [
         {
           statisticType: 'count',
-          onStatisticField: window.oneDetection.ydxzField,
+          onStatisticField: '规划用地性质名称',
           outStatisticFieldName: 'count',
         },
       ]
@@ -750,7 +759,7 @@ export default {
           that.geometryYDXZ = ''
           for (let i = 0; i < results.features.length; i++) {
             that.geometryYDXZ +=
-              results.features[i].attributes[window.oneDetection.ydxzField]
+              results.features[i].attributes['规划用地性质名称']
             if (i + 1 === results.features.length) {
               that.geometryYDXZ += ','
             }
@@ -758,35 +767,40 @@ export default {
         }
       })
     },
-    queryXZQ(geo) {
-      const view = getMainView()
-      const featureLayer = new config.esriConstructors.FeatureLayer({
-        url: window.allNewUrl.regionUrl,
-      })
-      const query = featureLayer.createQuery()
-      query.geometry = geo
-      query.returnGeometry = false
-      query.where = '1=1'
-      query.outSpatialReference = view.spatialReference
-      const that = this
-      featureLayer.queryFeatures(query).then(function (results) {
-        if (results.features.length > 0) {
-          that.geometryXZQ = ''
-          for (let i = 0; i < results.features.length; i++) {
-            that.geometryXZQ +=
-              results.features[i].attributes[window.allNewUrl.regionOutFields]
 
-            if (i + 1 < results.features.length) {
-              that.geometryXZQ += ','
-            }
-          }
-        }
-      })
-    },
+    // async queryXZQ(geo) {
+    //   const view = getMainView()
+    //   const [FeatureLayer] = await getModules([
+    //     'esri/layers/FeatureLayer'
+    //   ])
+    //   const featureLayer = new FeatureLayer({
+    //     url: window.allNewUrl.regionUrl,
+    //   })
+    //   const query = featureLayer.createQuery()
+    //   query.geometry = geo
+    //   query.returnGeometry = false
+    //   query.where = '1=1'
+    //   query.outSpatialReference = view.spatialReference
+    //   const that = this
+    //   featureLayer.queryFeatures(query).then(function (results) {
+    //     if (results.features.length > 0) {
+    //       that.geometryXZQ = ''
+    //       for (let i = 0; i < results.features.length; i++) {
+    //         that.geometryXZQ +=
+    //           results.features[i].attributes[window.allNewUrl.regionOutFields]
+
+    //         if (i + 1 < results.features.length) {
+    //           that.geometryXZQ += ','
+    //         }
+    //       }
+    //     }
+    //   })
+    // },
     // 勾选的结果进行汇总
     needQueryList() {
       this.allData = []
       const ckeckedKeys = this.$refs.tree.getCheckedKeys() // 已勾选节点
+      // 过滤已勾选的检测指标
       this.schemeCatalogs[0].children.forEach((item) => {
         const param = item.children.filter((element) => {
           element.loading = true
@@ -815,6 +829,7 @@ export default {
           })
         })
         this.resultsContent = JSON.stringify(this.queryList) // 更新结果页
+        console.log(1)
         this.queryIndex++
         if (this.queryIndex < this.allData.length) {
           this.queryData(this.allData[this.queryIndex])
@@ -1038,6 +1053,7 @@ export default {
         return
       }
       Promise.all(promiseList).then((result) => {
+        console.log(33)
         this.dealData(result, item)
       })
     },
@@ -1049,6 +1065,7 @@ export default {
             project.analysis = 'success'
             project.loading = false
           }
+
         })
       })
       this.resultsContent = JSON.stringify(this.queryList) // 更新结果页
@@ -1116,11 +1133,6 @@ export default {
     },
     setGeometryCenter() {
       const view = getMainView()
-      console.log(
-        '%c [ view ]-1111',
-        'font-size:13px; background:pink; color:#bf2c9f;',
-        view
-      )
       //   view.extent = changeExtent(this.polygonGraphic.geometry.extent.clone())
     },
     handleNodeClick() {},
@@ -1302,6 +1314,6 @@ export default {
   width: 100%;
 }
 /deep/ .el-scrollbar__wrap {
-  overflow: hidden;
+  overflow: auto;
 }
 </style>

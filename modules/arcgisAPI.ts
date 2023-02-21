@@ -1,11 +1,7 @@
 import { loadModules, loadCss } from 'esri-loader'
 import config from './appConfig'
-import { createLayer, setLayer, getLayer } from './esriLayer'
-import { layerType } from './appEnum'
-import twoDimensionalOption from './twoDimensionalOption'
-
+import { createLayer } from './esriLayer'
 import { getMaps } from '@/services/api/map'
-
 const option = {
   api: '/library/4.18/dojo/dojo.js',
   css: '/library/4.18/esri/css/main.css',
@@ -91,53 +87,85 @@ export const getMapData = () => {
 // 生成二维地图
 export async function create2DView(div: string) {
   try {
-    const win: any = window
-    const [BaseMap, Map, MapView, ScaleBar] = await getModules([
-      'esri/Basemap',
-      'esri/Map',
-      'esri/views/MapView',
-      'esri/widgets/ScaleBar',
-    ])
-    // 影像图
-    const layer1 = await createLayer(win.mapConfig.satelliteImage)
-    setLayer('imageMap', layer1)
-    // 电子地图
-    const layer2 = await createLayer(win.mapConfig.governmentSpace)
-    setLayer('eleMap', layer2)
-    // 电子地图 -注记
-    const layer3 = await createLayer(win.mapConfig.governmentNotes)
-    setLayer('notesMap', layer3)
-    // 影像图 -注记
-    const layer4 = await createLayer(win.mapConfig.imageNotes)
-    setLayer('imageNotes', layer4)
-    const baseLayers = [layer1, layer2, layer3, layer4]
-    const baseMap = new BaseMap({
-      baseLayers,
-    })
-    const map = new Map({
-      basemap: baseMap,
-    })
-    const option = twoDimensionalOption
-    option.container = div
-    option.map = map
-    const view2D = new MapView(option)
-    view2D.ui.remove('attribution')
-    view2D.ui.empty('top-left')
-    view2D.ui.empty('top-right')
-    // const scaleBar = new ScaleBar({
-    //   view: view2D,
-    //   unit: "metric"
-    // });
-    //     view2D.ui.add(scaleBar, {
-    //       position: "bottom-left"
-    //   });
-    view2D.popup.autoOpenEnabled = true
-    config.esriInstance.view2D = view2D
-    config.esriInstance.map2D = map
-    config.activeView = view2D
-    return view2D
+    const allLayers: any[] = [];
+    const mapInitParam = config.mapInitParam;
+    const constraints = mapInitParam.constraint
+      ? eval("(" + mapInitParam.constraint + ")")
+      : "";
+    const spatialReference = eval(
+      "(" + mapInitParam.mapConfig.spatialReference + ")"
+    );
+    const extent = {
+      xmin: mapInitParam.extent2D.xMin,
+      ymin: mapInitParam.extent2D.yMin,
+      xmax: mapInitParam.extent2D.xMax,
+      ymax: mapInitParam.extent2D.yMax,
+      spatialReference,
+    };
+    const map2dLayerList = config.basemap2DLayers;
+    const [BaseMap, Map, MapView] = await getModules([
+      "esri/Basemap",
+      "esri/Map",
+      "esri/views/MapView",
+    ]);
+    map2dLayerList.forEach(async (item: any) => {
+      item.checked = true;
+      const layer = await createLayer(item);
+      if (layer) {
+        layer.visible = item.checked;
+        if (item.checked) {
+          config.basemapVue.mapName = item.parentName;
+          config.baseMapID.push(item.mapLayer.id);
+          config.basemapVue.mapName = item.parentName;
+          config.baseMapID.push(item.mapLayer.id);
+        }
+      }
+      allLayers.push(layer);
+      // 默认展示电子地图
+      allLayers.forEach((item: any) => {
+        item.parentName == "电子地图"
+          ? (item.visible = true)
+          : (item.visible = false);
+      });
+
+      if (allLayers.length === map2dLayerList.length) {
+        const baseMap = new BaseMap({
+          baseLayers: allLayers,
+        });
+        const map = new Map({
+          basemap: baseMap,
+        });
+        const view2D = new MapView({
+          container: div,
+          map,
+          extent,
+          constraints: {
+            rotationEnabled: false,
+          },
+          spatialReference,
+          highlightOptions: {
+            color: [255, 255, 0, 1],
+            haloOpacity: 0.9,
+            fillOpacity: 0.2,
+          },
+        });
+        view2D.constraints = constraints;
+        view2D.ui.remove("attribution");
+        view2D.ui.empty("top-left");
+        view2D.ui.empty("top-right");
+        view2D.popup.autoOpenEnabled = true;
+        config.esriInstance.view2D = view2D;
+        config.esriInstance.map2D = map;
+        config.activeView = view2D;
+        // config.activeView.when(async () => {
+        //   // useStore().map.setglobalLoading(false);
+        // });
+        // bindClickEvt();
+        return view2D;
+      }
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
   }
 }
 

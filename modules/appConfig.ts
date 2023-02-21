@@ -8,6 +8,12 @@ const config: { [key: string]: any } = {
     layers: new Map(), // 3D场景中的layers,用于在需要使用layer的地方进行检索
   }, // gis实例
   view: null,
+  basemapVue: {},
+  baseMapID: [],
+  activeView: null,
+  mapInitParam: null,
+  basemap2DCatalogs: [], // 动态获取的二维底图目录
+  basemap2DLayers: [], // 动态获取的二维底图
   esriConstructors: gisConstructor, // gis构造函数
   openLocation: false, // 坐标拾取
   measurementWidget: null, // 测量组件

@@ -17,7 +17,7 @@
           <el-col :span="7" class="row-box-left">外部导入 : </el-col>
           <el-col :span="17" class="row-box-right">
             <el-row :gutter="10" style="margin-bottom: 5px" type="flex">
-              <el-col :span="8">
+              <el-col :span="16">
                 <el-upload
                   ref="upload"
                   :show-file-list="false"
@@ -27,14 +27,14 @@
                   :on-remove="handleFileRemove"
                   class="upload-demo"
                   accept=".zip,.rar"
-                  action="/GisApi/services/app/Gis/ParseShapeFile"
+                  action="http://192.9.200.86:7001/api/services/app/Gis/ParseShapeFile"
                 >
                   <el-button class="form-btn btn-start" size="small"
                     >shape文件</el-button
                   >
                 </el-upload>
               </el-col>
-              <el-col :span="8">
+              <el-col :span="16">
                 <el-upload
                   ref="upload"
                   :show-file-list="false"
@@ -264,10 +264,12 @@ import {
   queryFeaturesBeyond,
 } from '~/modules/esriDetection'
 import config from '~/modules/appConfig'
-import { getMainView } from '@/modules/arcgisAPI'
+// import { getMainView } from '@/modules/arcgisAPI'
+import { getMainView, getModules } from '~/modules/arcgisAPI'
 // import { changeExtent, getMainView } from '~/modules/esriCommand'
 import basePanel from '@/components/templates/templatePanels.vue'
-// import { getControlLineCatalog } from '~/modules/service'
+import { getStatdetectPlData } from '~/services/api/common'
+
 export default {
   name: 'COneDetection',
   components: {
@@ -337,14 +339,16 @@ export default {
         'font-size:13px; background:pink; color:#bf2c9f;',
         nodeId
       )
-      //   getControlLineCatalog(nodeId, (res) => {
-      //     if (res.children) {
-      //       res.displayName = '全选'
-      //       this.schemeCatalogs = [res]
-      //     } else {
-      //       console.log('获取批量检测方案失败')
-      //     }
-      //   })
+      getStatdetectPlData()
+        .then((res) => {
+          if (res.children) {
+            res.displayName = '全选'
+            this.schemeCatalogs = [res]
+          }
+        })
+        .catch((err) => {
+          console.log('获取一键检测方案失败', err)
+        })
     },
     clearVisible() {
       this.columns.forEach((item) => {
@@ -407,16 +411,26 @@ export default {
       this.uploadState = false
     },
     clearGeometry() {
-      const view = config.getMainView()
+      const view = getMainView()
       view.graphics.removeAll()
     },
-    changeSelectGeo() {
+    async changeSelectGeo() {
       try {
-        const view = config.getMainView()
+        const view = getMainView()
         const spatialReference = view.spatialReference
+        const [Polygon, geometryEngine, Graphic] = await getModules([
+          'esri/geometry/Polygon',
+          'esri/geometry/geometryEngine',
+          'esri/Graphic',
+        ])
         view.graphics.removeAll()
         let polygon = null
         this.list = []
+        console.log(
+          '%c [ this.inputFileFeaure ]-430',
+          'font-size:13px; background:pink; color:#bf2c9f;',
+          this.inputFileFeaure
+        )
         for (const item of this.inputFileFeaure) {
           if (item.name === this.featuresName) {
             this.list = item.features
@@ -428,13 +442,13 @@ export default {
             ? item.attributes['地块编号']
             : index
           if (item.geometry.coordinates) {
-            polygon = new config.esriConstructors.Polygon({
+            polygon = new Polygon({
               rings: item.geometry.coordinates,
               spatialReference,
               title,
             })
           } else {
-            polygon = new config.esriConstructors.Polygon({
+            polygon = new Polygon({
               rings: item.geometry.rings,
               spatialReference,
               title,
@@ -442,14 +456,17 @@ export default {
           }
           this.graphicArr.push(polygon)
         })
-        const allPolygons = config.esriConstructors.geometryEngine.union(
-          this.graphicArr
-        )
-        this.polygonGraphic = new config.esriConstructors.Graphic({
+        const allPolygons = geometryEngine.union(this.graphicArr)
+        this.polygonGraphic = new Graphic({
           geometry: allPolygons,
           symbol: this.fillSymbol,
         })
+      
         view.graphics.add(this.polygonGraphic)
+        view.extent = this.polygonGraphic.geometry.extent
+        view.goTo({
+          zoom: 7,
+        })
       } catch (error) {
         console.log(error)
         this.$message.error(error)
@@ -487,7 +504,7 @@ export default {
     },
     reset() {
       this.inputFileFeaure = []
-      const view = config.getMainView()
+      const view = getMainView()
       view.graphics.removeAll()
       this.polygonGraphic = null
       this.$refs.tree.setCheckedKeys([])
@@ -1124,8 +1141,8 @@ export default {
   padding: 0 20px 20px;
 }
 /deep/ .el-progress-bar {
-  margin-right: -69px;
-  width: 95%;
+  margin-top: 9px;
+  width: 100%;
 }
 /deep/ .el-table th {
   background: #ade3fe;
@@ -1285,5 +1302,11 @@ export default {
   right: 505px;
   top: 162px;
   width: calc(100vw - 588px);
+}
+/deep/ .el-scrollbar__wrap {
+  overflow: auto;
+}
+/deep/ .el-upload {
+  width: 100%;
 }
 </style>

@@ -152,69 +152,54 @@ export function ChangeLayerOpacity(id: string, opacity: number) {
   layer.opacity = opacity
 }
 // 创建图层
-export async function createLayer(data: {
-  id: any
-  serviceUrl: any
-  formal?: any
-  title: any
-  type?: string
-  layerType: any
-  opacity: any
-  spatialReference: any
-  visible: any
-  lods?: any
-  elevationInfo?: number
-  nodeId?: any
-  labelEnabled?: any
-  parentName?: any
-  categoryId?: any
-}) {
+export async function createLayer(data: any) {
   try {
-    let layer = null
-    const options: any = {
-      url: data.serviceUrl,
-      outFields: ['*'],
-      spatialReference: data.spatialReference || {
-        wkid: 4490,
-      },
-    }
-    const Layer = await getLayerModule(data.layerType)
+    let layer = null;
+    const options = {
+      url: data.mapLayer.serviceUrl,
+      outFields: ["*"],
+    };
+    const Layer = await getLayerModule(data.layerType);
     switch (data.layerType) {
-      case layerEnum.MapImage:
-        // eslint-disable-next-line no-case-declarations
-        const index: any = data.serviceUrl.lastIndexOf('/')
-        const id = data.serviceUrl.substring(index + 1, data.serviceUrl.length)
+      case layerEnum.MapImage: {
+        const index: any = (data.mapLayer.serviceUrl as string).lastIndexOf(
+          "/"
+        );
+        const id: any = (data.mapLayer.serviceUrl as string).substring(
+          index + 1,
+          data.mapLayer.serviceUrl.length
+        );
         if (!isNaN(parseInt(id))) {
           layer = new Layer({
-            url: data.serviceUrl.substring(0, index),
+            url: data.mapLayer.serviceUrl.substring(0, index),
             sublayers: [
               {
                 id: parseInt(id),
                 visible: true,
               },
             ],
-          })
+          });
         } else {
           layer = new Layer({
-            url: data.serviceUrl,
-          })
+            url: data.mapLayer.serviceUrl,
+          });
         }
-        break
+        break;
+      }
       case layerEnum.Scene:
-        layer = new Layer({ url: options.url })
-        break
+        layer = new Layer({ url: options.url, outFields: ["*"] });
+        break;
       case layerEnum.Tile:
-        // options.version = 10.5;
-        layer = new Layer(options)
-        break
-      case layerEnum.WebTile:
-        // if (config.constraint) {
-        // eslint-disable-next-line no-eval
-        const spatialReference = data.spatialReference
+        layer = new Layer(options);
+        break;
+      case layerEnum.WebTile: {
+        const spatialReference = eval(
+          "(" + config.mapInitParam.mapConfig.spatialReference + ")"
+        );
         const tileInfo = {
           dpi: 90.71428571427429,
-          rows: 128,
-          cols: 128,
+          rows: 256,
+          cols: 256,
           compressionQuality: 0,
           origin: {
             x: -180,
@@ -222,54 +207,46 @@ export async function createLayer(data: {
           },
           spatialReference,
           lods: data.lods || [],
-        }
+        };
         layer = new Layer({
-          urlTemplate: data.serviceUrl,
+          urlTemplate: data.mapLayer.serviceUrl,
           tileInfo,
           spatialReference: tileInfo.spatialReference,
           fullExtent: {
-            xmin: 117.88222075578335,
-            ymin: 24.42248132435367,
-            xmax: 118.4541662028081,
-            ymax: 24.907266362752466,
+            xmin: -180,
+            ymin: -90,
+            xmax: 180,
+            ymax: 90,
             spatialReference,
           },
           getTileUrl(level: number, row: any, col: any) {
             return this.urlTemplate
-              .replace('{level}', level + 1)
-              .replace('{row}', row)
-              .replace('{col}', col)
+              .replace("{level}", level + 1)
+              .replace("{row}", row)
+              .replace("{col}", col);
           },
-        })
-        // } else {
-        //   layer = new Layer({
-        //     urlTemplate: data.serviceUrl,
-        //     getTileUrl(level, row, col) {
-        //       return this.urlTemplate
-        //         .replace("{level}", level)
-        //         .replace("{row}", row)
-        //         .replace("{col}", col);
-        //     },
-        //   });
-        // }
-        break
+        });
+
+        break;
+      }
+
       default:
-        layer = new Layer(options)
-        break
+        layer = new Layer(options);
+        break;
     }
-    layer.serverUrl = data.serviceUrl
-    layer.id = data.id
-    layer.nodeId = data.nodeId || ''
-    layer.title = data.title
-    layer.opacity = data.opacity / 100
-    layer.visible = data.visible
-    layer.labelsVisible = data.labelEnabled
-    layer.dataType = data.layerType
-    layer.parentName = data.parentName ? data.parentName : ''
-    layer.categoryId = data.categoryId ? data.categoryId : ''
-    return layer
+    layer.serverUrl = data.mapLayer.serviceUrl;
+    layer.id = data.mapLayer.id;
+    layer.nodeId = data.nodeId || "";
+    layer.title = data.displayName;
+    layer.opacity = data.opacity / 100;
+    layer.visible = data.visible;
+    layer.labelsVisible = data.labelEnabled;
+    layer.dataType = data.layerType;
+    layer.parentName = data.parentName ? data.parentName : "";
+    layer.categoryId = data.categoryId ? data.categoryId : "";
+    return layer;
   } catch (error) {
-    console.log(error)
-    return null
+    console.log(error);
+    return null;
   }
 }
