@@ -155,28 +155,6 @@
             </el-select>
           </el-col>
         </el-row>
-        <!-- <el-row v-show="activeList === 'layer'" class="row-box row-box-bottom">
-          <el-col :span="7" class="row-box-left">拾取图层 : </el-col>
-          <el-col :span="17" class="row-box-right">
-            <el-select
-              v-model="layerIndex"
-              size="small"
-              class="intelligent"
-              placeholder="请选择拾取图层"
-              style="width: 100%; height: 32px"
-              collapse-tags
-              @change="changeSelectLayer"
-            >
-              <el-option
-                v-for="(feature, index) of layerData"
-                :key="index"
-                :label="feature.displayName"
-                :value="index"
-              ></el-option>
-              <el-row style="height: 17px"></el-row>
-            </el-select>
-          </el-col>
-        </el-row> -->
       </el-row>
     </el-row>
     <el-row class="panel-item">
@@ -232,7 +210,7 @@
       </el-row>
     </el-row>
     <el-row :gutter="10">
-      <el-col :span="8">
+      <el-col :span="12">
         <el-button
           size="small"
           class="btn-search form-btn"
@@ -242,7 +220,7 @@
           >开始检测</el-button
         >
       </el-col>
-      <el-col :span="8">
+      <el-col :span="12">
         <el-button
           size="small"
           class="btn-search form-btn"
@@ -252,7 +230,7 @@
           >重置</el-button
         >
       </el-col>
-      <el-col :span="8">
+      <!-- <el-col :span="8">
         <el-button
           size="small"
           class="btn-search form-btn"
@@ -261,7 +239,7 @@
           @click="screenshot"
           >截图工具</el-button
         >
-      </el-col>
+      </el-col> -->
     </el-row>
     <base-panel
       v-if="showResult"
@@ -280,17 +258,10 @@
         @setGeometryCenter="setGeometryCenter"
       ></OneDetectionResult>
     </base-panel>
-    <!-- <BorderPickUpComponent
-      v-if="borderPickUp"
-      @selectLayerPanel="selectLayerPanel"
-      @selectLayerGeo="selectLayerGeo"
-    ></BorderPickUpComponent> -->
   </div>
 </template>
 <script>
 import OneDetectionResult from './COneDetectionResult.vue'
-// import BorderPickUpComponent from './BorderPickUp.vue'
-// import basePanel from '@/components/onlineMap/CBasePanel'
 import basePanel from '@/components/templates/templatePanels.vue'
 import { getStatdetectData } from '~/services/api/common'
 import {
@@ -307,13 +278,11 @@ import config from '~/modules/appConfig'
 import { getMainView, getModules } from '~/modules/arcgisAPI'
 
 import { changeExtent } from '~/modules/esriCommand'
-// import { createLayer } from '~/modules/esriLayer'
 export default {
   // 一键检测模块
   name: 'COneDetection',
   components: {
     OneDetectionResult,
-    // BorderPickUpComponent,
     basePanel,
   },
   data() {
@@ -383,55 +352,6 @@ export default {
         this.layerIndex = null
       }
     },
-    // async selectLayerGeo(features) {
-    //   try {
-    //     this.pickUpFeatures = features
-    //     this.form.geotype = '3'
-    //     const polygons = []
-    //     features.forEach((item) => {
-    //       if (
-    //         item.feature &&
-    //         item.feature.geometry &&
-    //         item.feature.geometry.rings
-    //       ) {
-    //         polygons.push(item.feature.geometry)
-    //       } else if (item.geometry && item.geometry.rings) {
-    //         polygons.push(item.geometry)
-    //       }
-    //     })
-    //     const [geometryEngine, Graphic] = await getModules([
-    //       'esri/geometry/geometryEngine',
-    //       'esri/Graphic',
-    //     ])
-    //     const polygon = geometryEngine.union(polygons)
-    //     const graphic = new Graphic({
-    //       geometry: polygon,
-    //       symbol: this.fillSymbol,
-    //     })
-    //     this.polygonGraphic = graphic
-    //     setTimeout(() => {
-    //       const view = getMainView()
-    //       view.graphics.add(graphic)
-    //       //   view.extent = changeExtent(polygon.extent.clone())
-    //     }, 1000)
-    //   } catch (error) {
-    //     console.log(error)
-    //   }
-    // },
-    // 获取拾取地图目录
-    // getLayerTree() {
-    //   this.activeList = 'layer'
-    //   if (this.layerData.length > 0) {
-    //     return
-    //   }
-    //   const categoryId = window.oneDetection.CategoryId
-
-    //     getCatalogLayerItems(categoryId).then((res) => {
-    //       if (res) {
-    //         this.layerData = res.items
-    //       }
-    //     })
-    // },
     screenshot() {
       this.$notify({
         title: '提示',
@@ -588,27 +508,6 @@ export default {
         view.extent = changeExtent(polygon.extent.clone())
       })
     },
-
-    changeSelectLayer() {
-      return false
-      //   try {
-      //     const map = getMainMap()
-      //     if (config.temporaryLayer) {
-      //       map.layers.remove(config.temporaryLayer)
-      //       config.temporaryLayer = null
-      //     }
-      //     const item = this.layerData[this.layerIndex]
-      //     // 数据处理符合创建图层要求
-      //     item.layerType = item.mapLayer.layerConfig.layerType
-      //     item.checked = true
-
-      //     config.temporaryLayer = createLayer(item)
-      //     map.layers.add(config.temporaryLayer)
-      //     this.selectLayerPanel(true)
-      //   } catch (error) {
-      //     console.log(error)
-      //   }
-    },
     async doAnalysis() {
       this.queryList = []
       const view = getMainView()
@@ -689,6 +588,7 @@ export default {
       if (this.sketchViewModel) this.sketchViewModel.destroy()
       // this.clear()
       this.$refs.tree.setCheckedKeys([])
+      this.showResult = false;
     },
     async showTemporaryLayer(layerData) {
       if (this.layerMap.has(layerData.layer.id + '-temporary')) {
@@ -768,34 +668,6 @@ export default {
       })
     },
 
-    // async queryXZQ(geo) {
-    //   const view = getMainView()
-    //   const [FeatureLayer] = await getModules([
-    //     'esri/layers/FeatureLayer'
-    //   ])
-    //   const featureLayer = new FeatureLayer({
-    //     url: window.allNewUrl.regionUrl,
-    //   })
-    //   const query = featureLayer.createQuery()
-    //   query.geometry = geo
-    //   query.returnGeometry = false
-    //   query.where = '1=1'
-    //   query.outSpatialReference = view.spatialReference
-    //   const that = this
-    //   featureLayer.queryFeatures(query).then(function (results) {
-    //     if (results.features.length > 0) {
-    //       that.geometryXZQ = ''
-    //       for (let i = 0; i < results.features.length; i++) {
-    //         that.geometryXZQ +=
-    //           results.features[i].attributes[window.allNewUrl.regionOutFields]
-
-    //         if (i + 1 < results.features.length) {
-    //           that.geometryXZQ += ','
-    //         }
-    //       }
-    //     }
-    //   })
-    // },
     // 勾选的结果进行汇总
     needQueryList() {
       this.allData = []
@@ -912,7 +784,7 @@ export default {
             break
           case '控制性详细规划检测':
             switch (res.displayName) {
-              case '一张蓝图_地块范围':
+              case '一张蓝图':
                 promiseList.push(
                   queryFeaturesByStatic(res, extent, '规划用地性质名称', [
                     inputFeatures,
@@ -1053,7 +925,6 @@ export default {
         return
       }
       Promise.all(promiseList).then((result) => {
-        console.log(33)
         this.dealData(result, item)
       })
     },
@@ -1133,7 +1004,7 @@ export default {
     },
     setGeometryCenter() {
       const view = getMainView()
-      //   view.extent = changeExtent(this.polygonGraphic.geometry.extent.clone())
+        view.extent = changeExtent(this.polygonGraphic.geometry.extent.clone())
     },
     handleNodeClick() {},
     closeLayer() {

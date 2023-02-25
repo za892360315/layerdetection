@@ -226,73 +226,71 @@ export function queryFeaturesForest(
   })
 }
 // 是否占用-只算压盖的面积-一键检测
-export function queryFeaturesOccupy(
+export async function queryFeaturesOccupy(
   queryscheme: any,
   inputExtent: any,
   filterFeatures: any
 ) {
-
-  // if (!queryscheme.layer) return
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve: any) => {
+  const [QueryTask, Query, GeometryEngine] = await getModules([
+    "esri/tasks/QueryTask",
+    "esri/tasks/support/Query",
+    "esri/geometry/geometryEngine",
+  ]);
+  return new Promise((resolve: any) => {
     try {
-      const [Query, QueryTask] = await getModules([
-        'esri/tasks/support/Query',
-        'esri/tasks/QueryTask',
-      ])
-      const query = new Query()
+      const query: any = new Query();
       if (queryscheme.subLayerIndex !== null) {
         query.url =
-          queryscheme.layer.serviceUrl + '/' + queryscheme.subLayerIndex
-
+          queryscheme.layer.serviceUrl + "/" + queryscheme.subLayerIndex;
       } else {
-        query.url = queryscheme.layer.serviceUrl
+        query.url = queryscheme.layer.serviceUrl;
       }
-      query.geometry = inputExtent
-      query.returnGeometry = true
-      query.outFields = ['*']
-      query.where = '1=1'
-      if (queryscheme.parameters !== '' && queryscheme.parameters != null) {
-        query.where = queryscheme.parameters
+
+      query.geometry = inputExtent;
+      query.returnGeometry = true;
+      query.outFields = ["*"];
+      query.where = "1=1";
+      if (queryscheme.parameters !== "" && queryscheme.parameters != null) {
+        query.where = queryscheme.parameters;
       }
       const queryTask = new QueryTask({
         url: query.url,
-      })
+      });
       // 查询图层与绘制区域内与相交的多边形
       queryTask.execute(query).then(function (queryResults: any) {
-        const inFeaMap: any = []
-        let isOccupy: boolean = false
-        const inputPolygonList: any = []
+        const inFeaMap: any = [];
+        let isOccupy = false;
+        const inputPolygonList: any = [];
         filterFeatures.forEach((item: any) => {
-          const geometry = item.geometry
-          if (geometry.type === 'polygon') {
-            inputPolygonList.push(geometry)
+          const geometry = item.geometry;
+          if (geometry.type === "polygon") {
+            inputPolygonList.push(geometry);
           }
-          queryResults.features.forEach(async (feature: any) => {
+          queryResults.features.forEach((feature: any) => {
             if (geometry && feature.geometry) {
-              const attributes = feature.attributes
-              const [geometryEngine] = await getModules([
-                'esri/geometry/geometryEngine',
-              ])
-              const flag = geometryEngine.intersects(geometry, feature.geometry)
+              const attributes = feature.attributes;
+              const flag = GeometryEngine.intersects(
+                geometry,
+                feature.geometry
+              );
               if (flag) {
-                const inGeo = geometryEngine.intersect(
+                const inGeo = GeometryEngine.intersect(
                   geometry,
                   feature.geometry
-                )
+                );
                 if (inGeo) {
-                  isOccupy = true
-                  const type = inGeo.type
-                  let mj = 0
+                  isOccupy = true;
+                  const type = inGeo.type;
+                  let mj = 0;
                   switch (type) {
-                    case 'polyline':
-                      mj = geometryEngine.planarLength(inGeo, 'meters')
-                      break
-                    case 'polygon':
-                      mj = geometryEngine.planarArea(inGeo, 'square-meters')
-                      break
+                    case "polyline":
+                      mj = GeometryEngine.planarLength(inGeo, "meters");
+                      break;
+                    case "polygon":
+                      mj = GeometryEngine.planarArea(inGeo, "square-meters");
+                      break;
                     default:
-                      break
+                      break;
                   }
 
                   const fea: any = {
@@ -300,50 +298,50 @@ export function queryFeaturesOccupy(
                     type,
                     attributes,
                     geometry: inGeo,
-                  }
-                  inFeaMap.push(fea)
+                  };
+                  inFeaMap.push(fea);
                 }
               }
             }
-          })
-        })
+          });
+        });
         if (queryResults.features.length === 0) {
           resolve({
-            state: 'success',
+            state: "success",
             isOccupy: false, // 是否占用
             analysisResult: [],
             projectList: [],
-          })
-          return
+          });
+          return;
         }
-        const paramList: any = []
-        let sum = 0
-        let type = ''
+        const paramList: any = [];
+        let sum = 0;
+        let type = "";
         inFeaMap.forEach((item: any) => {
-          sum += item.mj
+          sum += item.mj;
           if (type.length === 0) {
-            type = item.type
+            type = item.type;
           }
-        })
-        const projectList = inFeaMap.map((item: any) => item)
-        paramList.push({ name: '小计', 小计: sum, type })
+        });
+        const projectList = inFeaMap.map((item: any) => item);
+        paramList.push({ name: "小计", 小计: sum, type });
         resolve({
-          state: 'success',
-          isOccupy,
+          state: "success",
+          isOccupy: true,
           analysisResult: paramList,
           projectList,
-        })
-      })
+        });
+      });
     } catch (error) {
-      console.log(error)
+      console.log(error);
       resolve({
-        state: 'fail',
+        state: "fail",
         isOccupy: false, // 是否占用
         analysisResult: [],
         projectList: [],
-      })
+      });
     }
-  })
+  });
 }
 // 是否占用-只算点服务的数量-一键检测
 export function queryFeaturesPoint(queryscheme: any, inputExtent: any) {
@@ -871,128 +869,132 @@ async function isContainGeo(filterFeatures: any, queryFeatures: any) {
   return isContains
 }
 // 批量检测-判断每一个地块是否压盖到服务里面的地块
-export function queryFeaturesOccupyByEvery(
+//queryscheme 已勾选的图层
+//inputExtent 导入的或绘制的图形geometry
+//filterFeatures 导入的或绘制的图形features
+//indexName 当前勾选的图层名称
+export async function queryFeaturesOccupyByEvery(
   queryscheme: any,
   inputExtent: any,
   filterFeatures: any,
   indexName: string,
   type: string
 ) {
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve: any) => {
+  const [QueryTask, Query, GeometryEngine] = await getModules([
+    "esri/tasks/QueryTask",
+    "esri/tasks/support/Query",
+    "esri/geometry/geometryEngine",
+  ]);
+  return new Promise((resolve: any) => {
     try {
-      const [Query, QueryTask] = await getModules([
-        'esri/tasks/support/Query',
-        'esri/tasks/QueryTask',
-      ])
-      const query = new Query()
+      const query = new Query();
       if (queryscheme.subLayerIndex !== null) {
         query.url =
-          queryscheme.layer.serviceUrl + '/' + queryscheme.subLayerIndex
+          queryscheme.layer.serviceUrl + "/" + queryscheme.subLayerIndex;
       } else {
-        query.url = queryscheme.layer.serviceUrl
+        query.url = queryscheme.layer.serviceUrl;
       }
 
-      query.geometry = inputExtent
-      query.returnGeometry = true
-      query.outFields = ['*']
-      query.where = '1=1'
-      if (queryscheme.parameters !== '' && queryscheme.parameters != null) {
-        query.where = queryscheme.parameters
+      query.geometry = inputExtent;
+      query.returnGeometry = true;
+      query.outFields = ["*"];
+      query.where = "1=1";
+      if (queryscheme.parameters !== "" && queryscheme.parameters != null) {
+        query.where = queryscheme.parameters;
       }
       const queryTask = new QueryTask({
         url: query.url,
-      })
-      const view = getMainView()
+      });
+      const view = getMainView();
       // 查询图层与绘制区域内与相交的多边形
       queryTask.execute(query).then(function (queryResults: any) {
-        filterFeatures.forEach(async (item: any) => {
-          let isContinue = true
-          const geometry = item.geometry
-          geometry.spatialReference = view.spatialReference
-          const [geometryEngine] = await getModules([
-            'esri/geometry/geometryEngine',
-          ])
+        filterFeatures.forEach((item: any) => {
+          let isContinue = true;
+          const geometry = item.geometry;
+          geometry.spatialReference = view.spatialReference;
           for (const feature of queryResults.features) {
             if (!isContinue) {
-              break
+              break;
             }
             if (geometry && feature.geometry) {
-              const attributes = feature.attributes
+              const attributes = feature.attributes;
               // 判断相交
-              const flag = geometryEngine.intersects(geometry, feature.geometry)
+              const flag = GeometryEngine.intersects(
+                geometry,
+                feature.geometry
+              );
               if (flag) {
                 switch (type) {
                   // 占用
-                  case 'isOppcupy':
+                  case "isOppcupy":
                     item[indexName] = {
                       oppcupy: flag,
-                    }
-                    isContinue = false
-                    break
+                    };
+                    isContinue = false;
+                    break;
                   // 需要获取属性
-                  case 'getAttributes':
+                  case "getAttributes":
                     // eslint-disable-next-line no-case-declarations
-                    const inGeo1 = geometryEngine.intersect(
+                    const inGeo1 = GeometryEngine.intersect(
                       geometry,
                       feature.geometry
-                    )
+                    );
                     if (inGeo1) {
                       if (item[indexName]) {
-                        item[indexName].attributes.push(attributes)
+                        item[indexName].attributes.push(attributes);
                       } else {
                         item[indexName] = {
                           oppcupy: flag,
                           attributes: [attributes],
-                        }
+                        };
                       }
                     }
 
-                    break
+                    break;
                   // 获取是否包含
-                  case 'isOppcupyOrContain':
+                  case "isOppcupyOrContain":
                     item[indexName] = {
                       oppcupy: flag,
-                    }
+                    };
                     // eslint-disable-next-line no-case-declarations
-                    const isContains = geometryEngine.contains(
+                    const isContains = GeometryEngine.contains(
                       geometry,
                       feature.geometry
-                    )
+                    );
                     if (isContains) {
-                      item[indexName].contain = isContains
-                      isContinue = false
+                      item[indexName].contain = isContains;
+                      isContinue = false;
                     }
-                    break
+                    break;
 
                   // 获取相交的地块
-                  case 'getIntersect':
+                  case "getIntersect":
                     // eslint-disable-next-line no-case-declarations
-                    const inGeo = geometryEngine.intersect(
+                    const inGeo = GeometryEngine.intersect(
                       geometry,
                       feature.geometry
-                    )
+                    );
                     if (item[indexName]) {
-                      item[indexName].geometry.push(inGeo)
+                      item[indexName].geometry.push(inGeo);
                     } else {
                       item[indexName] = {
                         oppcupy: flag,
                         geometry: [inGeo],
-                      }
+                      };
                     }
-                    break
+                    break;
                   default:
-                    break
+                    break;
                 }
               }
             }
           }
-        })
-        resolve(filterFeatures)
-      })
+        });
+        resolve(filterFeatures);
+      });
     } catch (error) {
-      console.log(error)
-      resolve(filterFeatures)
+      console.log(error);
+      resolve(filterFeatures);
     }
-  })
+  });
 }

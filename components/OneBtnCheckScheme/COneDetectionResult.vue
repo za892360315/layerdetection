@@ -253,7 +253,7 @@
                   </el-table>
                   <el-table
                     v-if="childrenItem.displayName === '是否涉及新增建设用地'"
-                    :data="childrenItem.tableResult.analysisResult"
+                    :data="Object.values(childrenItem.tableResult.analysisResult) "
                     style="width: 100%"
                   >
                     <el-table-column
@@ -745,20 +745,20 @@
                 >
                   <el-row>涉及项目列表</el-row>
                   <el-table
-                    :data="childrenItem.projectList"
+                    :data="childrenItem.result[0].projectList"
                     style="width: 100%"
                     height="300"
                     @row-click="handleClick"
                   >
-                    <el-table-column
-                      prop="name"
+                  <el-table-column
+                      prop="attributes.项目名称"
                       label="项目名称"
                       align="center"
                     >
                     </el-table-column>
                     <el-table-column
-                      prop="pzwh"
-                      label="批准文号"
+                      prop="attributes.项目编号"
+                      label="项目编号"
                       align="center"
                     >
                     </el-table-column>
@@ -768,7 +768,7 @@
             </div>
           </div>
         </el-scrollbar>
-        <!-- <el-button class="btn-export" @click="exportWord">导出报告</el-button> -->
+        <el-button class="btn-export" @click="exportWord">导出报告</el-button>
       </el-col>
     </el-row>
   </el-row>
@@ -777,8 +777,10 @@
 <script lang="ts">
 import { Vue, Component, Prop, Watch } from 'vue-property-decorator'
 // import config from '../../../modules/appConfig'
-// import { changeExtent, defaultScreenshot } from '../../../modules/esriCommand'
-import { getMainView, getModules } from '~/modules/arcgisAPI'
+import { defaultScreenshot } from "@/modules/esriCommand";
+
+import { getMainView, getModule, getModules } from '~/modules/arcgisAPI'
+import { changeExtent } from '~/modules/esriCommand'
 
 import { exportPlanCheckWord } from '~/modules/js/downtemplater'
 @Component({
@@ -789,7 +791,7 @@ export default class extends Vue {
   @Prop({ default: () => 0 }) private geometryArea!: any
   @Prop({ default: () => '' }) private geometryYdxz!: string
   @Prop({ default: () => '' }) private geometryXzq!: string
-  @Prop({ default: () => {} }) private resultsContent!: any
+  @Prop({ default: () => '' }) private resultsContent!: any
 
   analysisData: any = [] // 总数据
   currentPanel: string = ''
@@ -808,7 +810,6 @@ export default class extends Vue {
   @Watch('resultsContent', { deep: true, immediate: true })
   changeResultsContent(newVal: any) {
     this.analysisData = JSON.parse(newVal)
-    // console.log('%c [ this.analysisData ]-811', 'font-size:13px; background:pink; color:#bf2c9f;', this.analysisData)
     this.dataClassify()
     this.resetDKFW()
     this.layerArray.forEach((element: any) => {
@@ -872,7 +873,7 @@ export default class extends Vue {
       view.graphics.remove(this.dkfw)
       view.graphics.add(graphic)
       this.dkfw = graphic
-      //   view.extent = changeExtent(polygon.extent.clone())
+        view.extent = changeExtent(polygon.extent.clone())
     } catch (error) {
       console.log(error)
     }
@@ -1265,51 +1266,48 @@ export default class extends Vue {
     }
   }
 
-  // 处理涉及的项目 字段统一化
-  async combineList(projectList: any, fields: any) {
-    const arr: any = []
-    const map = new Map()
-    try {
-      for (const item of projectList) {
-        let isExist = true
-        for (const key of fields) {
-          if (!item.attributes[key]) {
-            isExist = false
-            console.log('字段匹配不上', fields)
-            break
-          }
-        }
-        if (isExist) {
-          const name = item.attributes[fields[0]]
-          const pzwh = item.attributes[fields[1]]
-          const pzwhProject = map.get(pzwh)
-          if (pzwhProject) {
-            const [geometryEngine] = await getModules([
-              'esri/geometry/geometryEngine',
-            ])
-            pzwhProject.geometry = geometryEngine.union([
-              pzwhProject.geometry,
-              item.geometry,
-            ])
-          } else {
-            const obj: any = {
-              name,
-              pzwh,
-              geometry: item.geometry,
-            }
-            map.set(pzwh, obj)
-          }
+// 处理涉及的项目 字段统一化
+ combineList =  async (projectList: any, fields: any) => {
+  const arr: any = [];
+  const map = new Map();
+  const GeometryEngine = await getModule("esri/geometry/geometryEngine");
+  try {
+    for (const item of projectList) {
+      let isExist = true;
+      for (const key of fields) {
+        if (!item.attributes[key]) {
+          isExist = false;
+          break;
         }
       }
-      map.forEach((item) => {
-        arr.push(item)
-      })
-      return arr
-    } catch (error) {
-      console.log(error)
-      return arr
+      if (isExist) {
+        const name = item.attributes[fields[0]];
+        const pzwh = item.attributes[fields[1]];
+        const pzwhProject = map.get(pzwh);
+        if (pzwhProject) {
+          pzwhProject.geometry = GeometryEngine.union([
+            pzwhProject.geometry,
+            item.geometry,
+          ]);
+        } else {
+          const obj: any = {
+            name,
+            pzwh,
+            geometry: item.geometry,
+          };
+          map.set(pzwh, obj);
+        }
+      }
     }
+    map.forEach((item) => {
+      arr.push(item);
+    });
+    return arr;
+  } catch (error) {
+    console.log(error);
+    return arr;
   }
+};
 
   // 处理新增用地
   async dealNewLandData(item: any) {
@@ -1570,62 +1568,63 @@ export default class extends Vue {
   // 控制性详细规划检测
   dealControlPlanningData(item: any) {
     try {
-      if (item.result && item.result.length > 0) {
-        let isOccupy = false // 是否占用
-        let isVisible = false
-        const list: any = [
-          {
-            name: '边界是否一致',
-            value: '',
-          },
-          {
-            name: '是否涉及在编控规范围',
-            value: '',
-          },
-        ]
-        item.detectControlPlanCategoryItems.forEach(
-          (el: any, index: number) => {
-            const occupy = item.result[index].isOccupy
-            const displayName = el.displayName
-            switch (displayName) {
-              case '在编控规范围':
-                list[1].value = occupy ? '是' : '否'
-                if (!isVisible) {
-                  isVisible = occupy
-                }
-                break
-              case '一张蓝图_地块范围':
-                const analysisResult = item.result[index].analysisResult
-                const isContain = item.result[index].isContain
-                list[0].value = isContain ? '是' : '否'
-                if (!isOccupy) {
-                  isOccupy = !isContain
-                }
-                const a = { name: '规划用地分项面积（㎡）' }
-                list.push(a)
-                for (const ss of analysisResult) {
-                  const b = {
-                    name: ss['规划用地性质名称'],
-                    value: ss.area.toFixed(2),
-                  }
-                  list.push(b)
-                }
-                break
-              default:
-                break
+    if (item.result && item.result.length > 0) {
+      let isOccupy = false; // 是否占用
+      let isVisible = false;
+      const list: any = [
+        {
+          name: "边界是否一致",
+          value: "",
+        },
+        {
+          name: "是否涉及在编控规范围",
+          value: "",
+        },
+      ];
+      item.detectControlPlanCategoryItems.forEach((el: any, index: number) => {
+        const occupy = item.result[index]?.isOccupy;
+        const displayName = el.displayName;
+        switch (displayName) {
+          case "在编控规范围":
+            list[1].value = occupy ? "是" : "否";
+            if (!isVisible) {
+              isVisible = occupy;
             }
-          }
-        )
-        item.tableResult = {
-          isOccupy,
-          isVisible,
-          analysisResult: list,
-          state: 'success',
+            break;
+          case "一张蓝图_地块范围":
+            // eslint-disable-next-line no-case-declarations
+            const analysisResult = item.result[index].analysisResult;
+            // eslint-disable-next-line no-case-declarations
+            const isContain = item.result[index].isContain;
+            list[0].value = isContain ? "是" : "否";
+            if (!isOccupy) {
+              isOccupy = !isContain;
+            }
+            // eslint-disable-next-line no-case-declarations
+            const a: any = { name: "规划用地分项面积（㎡）" };
+            list.push(a);
+            for (const ss of analysisResult) {
+              const b = {
+                name: ss["规划用地性质名称"],
+                value: ss.area.toFixed(2),
+              };
+              list.push(b);
+            }
+            break;
+          default:
+            break;
         }
-      }
-    } catch (error) {
-      console.log(error)
+      });
+      item.tableResult = {
+        isOccupy,
+        isVisible,
+        analysisResult: list,
+        state: "success",
+      };
     }
+  } catch (error) {
+    console.log(error);
+  }
   }
 
   // 是否涉及海洋功能区划
@@ -2168,20 +2167,20 @@ export default class extends Vue {
 
   exportWord() {
     this.loading = true
-    // const that = this
-    // this.$emit('setGeometryCenter')
-    // const screenLayerList = this.createLayerList(this.analysisData)
-    // const index = 0
-    // defaultScreenshot(
-    //   function (image: any) {
-    //     that.image = image
-    //     that.layerScreen(screenLayerList, index)
-    //   },
-    //   function () {
-    //     that.image = null
-    //     that.layerScreen(screenLayerList, index)
-    //   }
-    // )
+    const that = this
+    this.$emit('setGeometryCenter')
+    const screenLayerList = this.createLayerList(this.analysisData)
+    const index = 0
+    defaultScreenshot(
+      function (image: any) {
+        that.image = image
+        that.layerScreen(screenLayerList, index)
+      },
+      function () {
+        that.image = null
+        that.layerScreen(screenLayerList, index)
+      }
+    )
   }
 
   createLayerList(data: any) {
@@ -2223,25 +2222,25 @@ export default class extends Vue {
         .whenLayerView(that.featureLayer)
         .then(function (layerView: any) {
           layerView.watch('updating', function () {
-            // defaultScreenshot(
-            //   function (image: any) {
-            //     that.detectCategoryMap.set(screenList.displayName, image)
-            //     index++
-            //     if (index < screenLayerList.length) {
-            //       that.layerScreen(screenLayerList, index)
-            //     } else {
-            //       that.combineWordData()
-            //     }
-            //   },
-            //   function () {
-            //     index++
-            //     if (index < screenLayerList.length) {
-            //       that.layerScreen(screenLayerList, index)
-            //     } else {
-            //       that.combineWordData()
-            //     }
-            //   }
-            // )
+            defaultScreenshot(
+              function (image: any) {
+                that.detectCategoryMap.set(screenList.displayName, image)
+                index++
+                if (index < screenLayerList.length) {
+                  that.layerScreen(screenLayerList, index)
+                } else {
+                  that.combineWordData()
+                }
+              },
+              function () {
+                index++
+                if (index < screenLayerList.length) {
+                  that.layerScreen(screenLayerList, index)
+                } else {
+                  that.combineWordData()
+                }
+              }
+            )
           })
         })
         .catch((err: any) => {

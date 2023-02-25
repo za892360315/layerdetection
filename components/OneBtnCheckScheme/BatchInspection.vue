@@ -188,7 +188,7 @@
           :percentage="
             queryIndex === 0
               ? queryIndex
-              : ((queryIndex / allData.length) * 100).toFixed(2)
+              :parseInt(((queryIndex / allData.length) * 100))
           "
         ></el-progress></el-col
     ></el-row>
@@ -266,7 +266,7 @@ import {
 import config from '~/modules/appConfig'
 // import { getMainView } from '@/modules/arcgisAPI'
 import { getMainView, getModules } from '~/modules/arcgisAPI'
-// import { changeExtent, getMainView } from '~/modules/esriCommand'
+import { changeExtent } from '~/modules/esriCommand'
 import basePanel from '@/components/templates/templatePanels.vue'
 import { getStatdetectPlData } from '~/services/api/common'
 
@@ -333,12 +333,6 @@ export default {
   methods: {
     getControlLineCatalog() {
       if (this.schemeCatalogs.lenth > 0) return
-      const nodeId = window.oneDetection.BatchInspectionCatalogName
-      console.log(
-        '%c [ nodeId ]-334',
-        'font-size:13px; background:pink; color:#bf2c9f;',
-        nodeId
-      )
       getStatdetectPlData()
         .then((res) => {
           if (res.children) {
@@ -414,6 +408,7 @@ export default {
       const view = getMainView()
       view.graphics.removeAll()
     },
+    //选择图层
     async changeSelectGeo() {
       try {
         const view = getMainView()
@@ -426,11 +421,6 @@ export default {
         view.graphics.removeAll()
         let polygon = null
         this.list = []
-        console.log(
-          '%c [ this.inputFileFeaure ]-430',
-          'font-size:13px; background:pink; color:#bf2c9f;',
-          this.inputFileFeaure
-        )
         for (const item of this.inputFileFeaure) {
           if (item.name === this.featuresName) {
             this.list = item.features
@@ -461,7 +451,7 @@ export default {
           geometry: allPolygons,
           symbol: this.fillSymbol,
         })
-      
+
         view.graphics.add(this.polygonGraphic)
         view.extent = this.polygonGraphic.geometry.extent
         view.goTo({
@@ -472,10 +462,14 @@ export default {
         this.$message.error(error)
       }
     },
-    handleClick(row) {
+    async handleClick(row) {
       try {
         const view = getMainView()
-        const polygon = new config.esriConstructors.Polygon({
+        const [Polygon, Graphic] = await getModules([
+          'esri/geometry/Polygon',
+          'esri/Graphic',
+        ])
+        const polygon = new Polygon({
           rings: row.geometry.rings,
           spatialReference: view.spatialReference,
         })
@@ -487,7 +481,7 @@ export default {
             width: 2,
           },
         }
-        const graphic = new config.esriConstructors.Graphic({
+        const graphic = new Graphic({
           geometry: polygon,
           symbol: fillSymbol,
           id: new Date().getTime(),
@@ -497,19 +491,21 @@ export default {
         }
         view.graphics.add(graphic)
         this.dkfw = graphic
-        // view.extent = changeExtent(polygon.extent.clone())
+        view.extent = changeExtent(polygon.extent.clone())
       } catch (error) {
         console.log(error)
       }
     },
     reset() {
       this.inputFileFeaure = []
+      this.registerVisible = false
+      this.featuresName=''
       const view = getMainView()
       view.graphics.removeAll()
       this.polygonGraphic = null
       this.$refs.tree.setCheckedKeys([])
     },
-    showTemporaryLayer(layerData) {
+    async showTemporaryLayer(layerData) {
       if (this.layerMap.has(layerData.layer.id + '-temporary')) {
         const layer = this.layerMap.get(layerData.layer.id + '-temporary')
         layer.visible = true
@@ -530,7 +526,8 @@ export default {
           url = layerData.layer.serviceUrl
           id = layerData.subLayerIndex
         }
-        const layer = new config.esriConstructors.MapImageLayer({
+        const [MapImageLayer] = await getModules(['esri/layers/MapImageLayer'])
+        const layer = new MapImageLayer({
           title: 'temporary',
           id: layerData.layer.id + '-temporary',
           url,
@@ -739,7 +736,6 @@ export default {
       }
       const that = this
       Promise.all(promiseList).then((result) => {
-        console.log(result)
         this.queryIndex++
         if (that.queryIndex < that.allData.length) {
           that.queryData(that.allData[that.queryIndex])
@@ -779,6 +775,16 @@ export default {
               const layerAttributes = item['一张蓝图'].attributes
               item.type = this.getField(layerAttributes, '', '规划用地性质名称') // 规划用地性质
               item.plotRatioMax = this.getField(
+                layerAttributes,
+                '',
+                '容积率上限'
+              ) // 容积率上限
+              item.plotRatioMin = this.getField(
+                layerAttributes,
+                '',
+                '容积率下限'
+              ) // 容积率下限
+              item.buildingHeightMax = this.getField(
                 layerAttributes,
                 '',
                 '容积率上限'
@@ -1003,16 +1009,13 @@ export default {
       }
     },
     // 计算压盖面积占比
-    getFarmGeoMsg(geometry, inGeo) {
-      const AllInGeo = config.esriConstructors.geometryEngine.union(inGeo)
-      const geoArea = config.esriConstructors.geometryEngine.planarArea(
-        geometry,
-        'square-meters'
-      )
-      const AllGeoArea = config.esriConstructors.geometryEngine.planarArea(
-        AllInGeo,
-        'square-meters'
-      )
+    async getFarmGeoMsg(geometry, inGeo) {
+      const [geometryEngine] = await getModules([
+        'esri/geometry/geometryEngine',
+      ])
+      const AllInGeo = geometryEngine.union(inGeo)
+      const geoArea = geometryEngine.planarArea(geometry, 'square-meters')
+      const AllGeoArea = geometryEngine.planarArea(AllInGeo, 'square-meters')
       return geoArea / AllGeoArea
     },
     // 获取字段，把属性的字段拼成数组取出来

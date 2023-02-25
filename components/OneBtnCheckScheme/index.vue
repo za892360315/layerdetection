@@ -22,6 +22,7 @@
 import { Vue, Component } from 'vue-property-decorator'
 import OneDetectionComponet from './COneDetection.vue'
 import BatchInspectionComponet from './BatchInspection.vue'
+import { getMainView } from '~/modules/arcgisAPI'
 // import thematicStaticComponent from '@/components/onlineMap/staticAnalysis/CThematicStatic.vue'
 // import commonStaticComponent from '@/components/onlineMap/staticAnalysis/CCommonStatic.vue'
 // import { getUserInfo } from '@/modules/appCommon'
@@ -31,7 +32,7 @@ import BatchInspectionComponet from './BatchInspection.vue'
     // thematicStaticComponent,
     // commonStaticComponent,
     OneDetectionComponet,
-    BatchInspectionComponet
+    BatchInspectionComponet,
   },
 })
 export default class extends Vue {
@@ -65,7 +66,11 @@ export default class extends Vue {
     }
   }
 
-  handleClick() {}
+  handleClick() {
+    const view = getMainView()
+    view.map.removeAll()
+    view.graphics.removeAll()
+  }
 }
 </script>
 

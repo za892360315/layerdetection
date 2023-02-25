@@ -1,12 +1,12 @@
 <template>
   <div class="login-container">
     <div slot="header" class="title">
-      <img src="../assets/images/logo.png" width="884" height="106" alt />
+      <!-- <img src="../assets/images/logo.png" width="884" height="106" alt /> -->
     </div>
     <div class="login-middle">
-      <div class="logon-pic">
+      <!-- <div class="logon-pic">
         <img src="../assets/images/map.png" width="825" height="485" />
-      </div>
+      </div> -->
       <el-card class="login-form">
         <!-- <el-tabs v-model="activeName" class="login-tabs" stretch>
         <el-tab-pane label="用户登录" name="normal"> -->
@@ -48,22 +48,6 @@
             />
               <!-- <template slot="prepend"><i class="el-icon-lock"></i></template -->
               <!-- / > -->
-          </el-form-item>
-          <el-form-item prop="code" label="输入验证码">
-            <input
-              class="el-input__inner"
-              v-model="loginForm.code"
-              placeholder="请输入右侧图片的验证码"
-              name="code"
-              tabindex="2"
-              auto-complete="on"
-            />
-            <canvas
-              width="150"
-              height="42"
-              id="initCode"
-              class="initCode"
-            ></canvas>
           </el-form-item>
         </el-form>
         <!-- </el-tab-pane>
@@ -109,7 +93,6 @@ export default {
       loginForm: {
         username: '',
         password: '',
-        code: '',
         grant_type: 'password',
         scope: '',
         client_id: '',
@@ -122,7 +105,6 @@ export default {
         password: [
           { required: true, trigger: 'blur', validator: validatePassword },
         ],
-        code: [{ required: true, trigger: 'blur', message: '请输入验证码' }],
       },
       passwordType: 'password',
       loading: false,
@@ -151,9 +133,6 @@ export default {
       this.$store.commit('oneMap/setIsScopesSee', false)
       this.$refs.loginForm.validate(async (valid) => {
         if (valid) {
-          if (
-            this.authCode.toLowerCase() === this.loginForm.code.toLowerCase()
-          ) {
             try {
               const submitForm = new FormData()
               const res = await getPublicKey() // 获取公钥
@@ -196,10 +175,7 @@ export default {
               this.loading = false
               this.$message.error('登录失败，请联系管理员！')
             }
-          } else {
-            this.loading = false
-            this.$message.error('请输入正确验证码！')
-          }
+          
         } else {
           this.loading = false
           this.$message.error('请输入用户名或密码！')

@@ -49,7 +49,7 @@
 <script lang="ts">
 import { Vue, Component, Prop } from 'vue-property-decorator'
 @Component({
-  name: 'templatePanel'
+  name: 'templatePanel',
 })
 export default class extends Vue {
   @Prop({ default: () => false }) private showExport!: boolean
@@ -114,13 +114,13 @@ export default class extends Vue {
 }
 .header-left {
   float: left;
-  width: 223px;
+  width: 100.5%;
   height: 32px;
-  // background: url('../../assets/images/basePanel/面板-上左.png');
   background-size: 100% 100%;
   padding-left: 15px;
   padding-top: 5px;
-  color: white;
+  color: #333;
+  background-color: #fff;
 }
 .header-title {
   float: left;
