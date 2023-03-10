@@ -1,7 +1,8 @@
 import { loadModules, loadCss } from 'esri-loader'
 import config from './appConfig'
-import { createLayer } from './esriLayer'
+import { createLayer, getLayer, setLayer } from './esriLayer'
 import { getMaps } from '@/services/api/map'
+import { layerType } from './appEnum'
 const option = {
   api: '/library/4.18/dojo/dojo.js',
   css: '/library/4.18/esri/css/main.css',
@@ -90,8 +91,10 @@ export async function create2DView(div: string) {
     const allLayers: any[] = [];
     const mapInitParam = config.mapInitParam;
     const constraints = mapInitParam.constraint
+      // eslint-disable-next-line no-eval
       ? eval("(" + mapInitParam.constraint + ")")
       : "";
+    // eslint-disable-next-line no-eval
     const spatialReference = eval(
       "(" + mapInitParam.mapConfig.spatialReference + ")"
     );
@@ -123,7 +126,7 @@ export async function create2DView(div: string) {
       allLayers.push(layer);
       // 默认展示电子地图
       allLayers.forEach((item: any) => {
-        item.parentName == "电子地图"
+        item.parentName === "电子地图"
           ? (item.visible = true)
           : (item.visible = false);
       });
@@ -167,6 +170,115 @@ export async function create2DView(div: string) {
   } catch (error) {
     console.log(error);
   }
+}
+export async function create3DView(div: string) {
+  const altitudeLayers: any = [];
+  const imgLayers: any = [];
+  const [BaseMap, Map, SceneView] = await getModules([
+    "esri/Basemap",
+    "esri/Map",
+    "esri/views/SceneView",
+  ]);
+  // eslint-disable-next-line no-eval
+  const spatialReference = eval(
+    "(" + config.mapInitParam.mapConfig.spatialReference + ")"
+  );
+  const viewingMode =
+    config.mapInitParam.viewingMode === ""
+      ? "local"
+      : config.mapInitParam.viewingMode;
+  const [demLayers, layers] =  createLayers();
+  await demLayers[0].then((res: any) => {
+    altitudeLayers.push(res);
+  });
+  await layers[0].then((res: any) => {
+    imgLayers.push(res);
+  });
+  if (imgLayers.length !== 0) {
+    // const baseMap = new BaseMap({
+    //     baseLayers: imgLayers,
+    // });
+    const options: any = {};
+    options.basemap = new BaseMap();
+
+    // const photography = await createTiltPhotography();
+
+    // imgLayers.push(photography);
+
+    // const layersAll = await createLayerAll();
+    // layersAll.forEach((item: any) => {
+    //   imgLayers.push(item);
+    // });
+    options.basemap.baseLayers = imgLayers;
+    if (altitudeLayers && altitudeLayers.length > 0) {
+      options.ground = {
+        layers: altitudeLayers,
+        navigationConstraint: {
+          type: "none",
+        },
+        opacity: 1,
+      };
+    }
+    const map = new Map(options);
+    // const map = new Map({
+    //     basemap: baseMap,
+    // });
+    const view3D = new SceneView({
+      container: div,
+      map,
+      viewingMode,
+      spatialReference,
+    });
+
+    // view3D.popup.autoOpenEnabled = config.esriInstance.autoOpenEnabled;
+    view3D.qualitySettings.memoryLimit = 2048;
+    config.esriInstance.view3D = view3D;
+    config.esriInstance.map3D = map;
+    config.esriInstance.is3D = true;
+    view3D.ui.remove("attribution");
+    view3D.ui.empty("top-left");
+    view3D.ui.empty("top-right");
+    let camera = "";
+    // view3D.when(async () => {
+    //   useStore().map.setThreeGlobalLoading(false);
+    //   console.log("33333");
+    // });
+    view3D.watch("scale", function (value: any) {
+      view3D.layerViews.forEach(function (layerView: any) {
+        if (value < 900) {
+          view3D.camera = camera;
+        } else {
+          camera = layerView.view.camera;
+        }
+        // }
+      });
+    });
+    return view3D;
+  }
+}
+
+// 创建图层组3D
+export function createLayers() {
+
+  const demLayers = [];
+  const layers = [];
+
+  for (const data of config.basemap3DLayers) {
+    let layer = getLayer(data.mapLayer.id);
+    // if (!layer) {
+    layer = createLayer(data);
+    if (layer) {
+      setLayer(data.mapLayer.id, layer);
+      if (data.mapLayer.layerConfig.layerType === layerType.ElavationLayer) {
+        demLayers.push(layer);
+      } else {
+        layers.push(layer);
+      }
+    }
+    // }
+  }
+
+  return [demLayers, layers];
 }
 
 export async function createGraphics(data: any[], symbol?: any) {

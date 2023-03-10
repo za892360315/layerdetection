@@ -11,6 +11,7 @@ const config: { [key: string]: any } = {
   basemapVue: {},
   baseMapID: [],
   activeView: null,
+  container: "map",
   mapInitParam: null,
   basemap2DCatalogs: [], // 动态获取的二维底图目录
   basemap2DLayers: [], // 动态获取的二维底图

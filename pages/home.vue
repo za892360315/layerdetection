@@ -12,9 +12,9 @@
         <div class="map-content">
           <Cmap />
         </div>
-        <div class="check-scheme">
+        <!-- <div class="check-scheme">
           <OneBtnCheckScheme />
-        </div>
+        </div> -->
       </div>
     </div>
   </div>

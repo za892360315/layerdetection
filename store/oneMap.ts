@@ -4,6 +4,7 @@ const app: Module<any, any> = {
   namespaced: true,
   state() {
     return {
+      show3D: false,
       globalLoading: true, // 初始地图加载状态
       menuTitle: 'Topic', // 菜单
       mapType: 'imageMap', // 地图类型
@@ -42,6 +43,9 @@ const app: Module<any, any> = {
       state.showAllLayers = false
       state.menuTitle = value
       state.operateType = ''
+    },
+    setShow3D: (state, value) => {
+      state.show3D = value
     },
     setMapType: (state, value) => {
       state.mapType = value
