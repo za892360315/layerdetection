@@ -76,7 +76,7 @@
                 ? 'bottom-tool-btn-active'
                 : 'bottom-tool-btn'
             "
-            @click.native="handleShowWidget('ShotScreen')"
+            @click.native="handleCommandView('ShotScreen')"
           >
             <el-row class="tool-btn-icon">
               <i class="iconfont el-iconthird-map-camera"></i>
@@ -226,6 +226,12 @@
         >
           {{ panelName }}
         </div>
+        <div slot="content">
+          <ShotScreenComponet
+            :showIframeDialod="showIframeDialod"
+            v-if="panelType === 'ShotScreen'"
+          ></ShotScreenComponet>
+        </div>
         <!-- <div slot="content">
           <el-scrollbar style="height: calc(100vh - 300px)">
             <HistoryImage v-show="panelType === 'historyImage'" ref="history" />
@@ -298,19 +304,27 @@
       </div>
     </panelComponent> -->
     <!-- <MapBorderPickComponent v-if="showBorderPick" @close="setBorderPanel" /> -->
+    <div id="maskDiv" class="hide screenshotCursor" />
   </div>
 </template>
 
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator'
+import ShotScreenComponet from './mapTool/CShotScreen.vue'
 import { getMainView } from '~/modules/arcgisAPI'
-import PanelComponent from '@/components/templates/templatePanels.vue'
+import { removeLayers } from '@/modules/esriLayer'
+import PanelComponent from '@/components/templates/dialogComponent.vue'
 import config from '@/modules/appConfig'
-import { mouseDownRight,originalViewCommand } from '~/modules/esriCommand'
+import {
+  mouseDownRight,
+  originalViewCommand,
+  screenshotCommand,
+  resetCommand
+} from '~/modules/esriCommand'
 
 @Component({
   name: 'MapSecond',
-  components: { PanelComponent },
+  components: { PanelComponent, ShotScreenComponet },
 })
 export default class extends Vue {
   thematicName = '多规合一控制线' // 专题切换
@@ -327,6 +341,7 @@ export default class extends Vue {
   show3DTool = false // 显示3D工具
   sceneData: any = []
   animationData: any = []
+  showIframeDialod = true // 弹窗区别样式的唯一值
   switchDisabled = false
   historyPanel = false
   createGDPLayer = false
@@ -351,7 +366,14 @@ export default class extends Vue {
 
   // 重置
   handleReset() {
-    console.log('1233')
+    this.showPanel = false
+    // this.searchFeatures = []
+    this.panelType = ''
+    if (this.panelName === '图例') {
+      removeLayers(config.temporaryLayers)
+      config.temporaryLayers = []
+    }
+    resetCommand()
   }
 
   // 二三维切换
@@ -471,6 +493,7 @@ export default class extends Vue {
   // 模式切换
   handleCommandView(key: string) {
     this.handleReset()
+    this.panelType = key
     switch (key) {
       case 'StreetView':
         // streetViewCommand()
@@ -481,9 +504,30 @@ export default class extends Vue {
       case 'TopView':
         // topViewCommand()
         break
+      case 'ShotScreen': // 截图
+        this.panelName = '截图'
+        this.handleScreenShot()
+        break
       default:
         break
     }
+    this.showPanel = true
+  }
+
+  // 截图
+  handleScreenShot() {
+    const vm: any = this
+    vm.$store.commit('shotScreen/setHeight', '')
+    vm.$store.commit('shotScreen/setWidth', '')
+    vm.$store.commit('shotScreen/setImgUrl', '')
+    screenshotCommand(
+      function (screenshot: any) {
+        vm.$store.commit('shotScreen/setHeight', screenshot.data.height)
+        vm.$store.commit('shotScreen/setWidth', screenshot.data.width)
+        vm.$store.commit('shotScreen/setImgUrl', screenshot.dataUrl)
+      },
+      function () {}
+    )
   }
 
   mouseenter() {
@@ -705,5 +749,11 @@ export default class extends Vue {
     border-bottom-right-radius: 0px;
     border-top-right-radius: 0px;
   }
+}
+.widget-panel {
+  z-index: 100;
+  right: 20px;
+  top: 140px;
+  position: fixed;
 }
 </style>

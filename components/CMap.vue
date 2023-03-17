@@ -1,7 +1,7 @@
 <template>
   <div class>
     <div id="map" class="mapViewDiv"></div>
-    <toolComponent></toolComponent>
+    <!-- <toolComponent></toolComponent> -->
   </div>
 </template>
 
@@ -10,10 +10,12 @@ import { Vue, Component } from 'vue-property-decorator'
 import { init, create2DView, create3DView } from '@/modules/arcgisAPI'
 import config from '@/modules/appConfig'
 import { get2dMapCatalog, get3dMapCatalog, getMaps } from '~/services/api/map'
-import toolComponent from '@/components/CMapTool.vue'
+// import toolComponent from '@/components/CMapTool.vue'
 @Component({
   name: '',
-  components: { toolComponent },
+  components: { 
+    // toolComponent
+   },
 })
 export default class extends Vue {
   mounted() {

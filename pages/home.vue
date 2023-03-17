@@ -12,9 +12,9 @@
         <div class="map-content">
           <Cmap />
         </div>
-        <!-- <div class="check-scheme">
+        <div class="check-scheme">
           <OneBtnCheckScheme />
-        </div> -->
+        </div>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@ import OneBtnCheckScheme from '@/components/OneBtnCheckScheme/index.vue'
     OneBtnCheckScheme,
     Cmap,
   },
-  //   middleware: 'auth',
+    // middleware: 'auth',
 })
 export default class extends Vue {
   private renderStatus = false
@@ -106,4 +106,5 @@ export default class extends Vue {
   background-color: #fff;
   box-shadow: 0px 0px 7px 1px #ccc;
 }
+
 </style>

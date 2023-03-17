@@ -1,5 +1,10 @@
 import config from './appConfig'
 import { getMainView, getModule } from './arcgisAPI'
+import * as esriMeasure from './esriMeasure'
+import * as esriLineOfSight from './esriLineOfSight'
+import { screenshot, deleteHandler } from './esriScreenshot'
+import { clearGeometry } from './esriSearch'
+
 export function clearConfig() {
   config.esriInstance.layers.clear()
   config.activeView?.destroy()
@@ -68,7 +73,7 @@ export function mouseDownRight(
       document.onmousemove = null
       document.onmouseup = null
     }
-  } catch (error) {}
+  } catch (error) { }
 }
 function moveDivRight(
   oldTop: any,
@@ -123,5 +128,76 @@ export async function originalViewCommand() {
   view.goTo(extent, {
     duration: 1000,
   });
- 
+
+}
+
+// 截图
+export function screenshotCommand(
+  callbackOk: Function,
+  callbackCancel: Function
+) {
+  screenshot(callbackOk, callbackCancel)
+}
+
+// 重置
+export function resetCommand() {
+  try {
+    if (config.clickHandler) {
+      config.clickHandler.remove()
+      config.clickHandler = null
+    }
+    if (config.MapSecondVue.show3DMonitor) {
+      const mapViewDiv: HTMLElement | any =
+        document.getElementById('map3dMonitor')
+      mapViewDiv.style.cursor = 'auto'
+    } else if (config.MapToolVue.show3D) {
+      const mapViewDiv: HTMLElement | any = document.getElementById('map3d')
+      mapViewDiv.style.cursor = 'default'
+    } else {
+      const mapViewDiv: HTMLElement | any = document.getElementById('map2d')
+      mapViewDiv.style.cursor = 'default'
+    }
+    clearGeometry() // 属性查询事件
+    esriMeasure.clearMeasurement()
+    esriLineOfSight.clearlineOfSight() // 清除视线分析
+    popupCommand(false) // 关闭弹窗
+    sliceCommand(false) // 关闭剖切
+    deleteHandler() // 关闭截图
+    const view: any = getMainView()
+    view.graphics.removeAll() // 清除所有临时图形
+    view.popup.visible = false
+  } catch (ex: any) {
+    console.log(ex)
+  }
+}
+
+
+// 开启/关闭自动弹窗 属性查询用
+export function popupCommand(enabled: boolean) {
+  const view = getMainView()
+  view.popup.autoOpenEnabled = enabled
+}
+
+// 剖切
+export function sliceCommand(state: boolean) {
+  const view = config.esriInstance.view3D
+  let sliceWidget = config.sliceArgument
+  if (state) {
+    if (!config.sliceArgument) {
+      const htmlElem: any = document.getElementById('widget-panel-div')
+      const container = document.createElement('div')
+      htmlElem.appendChild(container)
+      sliceWidget = new config.esriConstructors.Slice({
+        view,
+        container
+      })
+    }
+    sliceWidget.viewModel.newSlice()
+    config.sliceArgument = sliceWidget
+  } else if (sliceWidget) {
+    view.ui.remove(sliceWidget)
+    sliceWidget.container = null
+    sliceWidget.destroy()
+    config.sliceArgument = null
+  }
 }
